@@ -20,12 +20,14 @@ limitations under the License.
 #include "snap/rpc/plugin.pb.h"
 
 #include "snap/metric.h"
+#include "snap/exception.h"
 
 using google::protobuf::RepeatedPtrField;
 
 using grpc::Server;
 using grpc::ServerContext;
 using grpc::Status;
+using grpc::StatusCode;
 
 using rpc::Empty;
 using rpc::ErrReply;
@@ -37,6 +39,7 @@ using rpc::MetricsReply;
 
 using Plugin::Metric;
 using Plugin::Proxy::CollectorImpl;
+using Plugin::Exception;
 
 CollectorImpl::CollectorImpl(Plugin::CollectorInterface* plugin) :
                              collector(plugin) {
@@ -50,34 +53,47 @@ CollectorImpl::~CollectorImpl() {
 Status CollectorImpl::CollectMetrics(ServerContext* context,
                                      const MetricsArg* req,
                                      MetricsReply* resp) {
-  std::vector<Metric> metrics;
-  RepeatedPtrField<rpc::Metric> rpc_mets = req->metrics();
+	try {
+		  std::vector<Metric> metrics;
+		  RepeatedPtrField<rpc::Metric> rpc_mets = req->metrics();
 
-  for (int i = 0; i < rpc_mets.size(); i++) {
-    metrics.emplace_back(rpc_mets.Mutable(i));
-  }
+		  for (int i = 0; i < rpc_mets.size(); i++) {
+			metrics.emplace_back(rpc_mets.Mutable(i));
+		  }
+		  collector->collect_metrics(&metrics);
 
-  collector->collect_metrics(&metrics);
+		  for (Metric met : metrics) {
+			*resp->add_metrics() = *met.rpc_metric_ptr;
+		  }
+		  return Status::OK;
 
-  for (Metric met : metrics) {
-    *resp->add_metrics() = *met.rpc_metric_ptr;
-  }
-  return Status::OK;
+	} catch (Exception &e) {
+			resp->set_error(e.what());
+			Status status(StatusCode::UNKNOWN, e.what());
+			return status;
+	}
 }
 
 Status CollectorImpl::GetMetricTypes(ServerContext* context,
                                      const GetMetricTypesArg* req,
                                      MetricsReply* resp) {
-  Plugin::Config cfg(req->config());
+	try {
+	  Plugin::Config cfg(req->config());
 
-  std::vector<Metric> metrics = collector->get_metric_types(cfg);
+	  std::vector<Metric> metrics = collector->get_metric_types(cfg);
 
-  for (Metric met : metrics) {
-    met.set_timestamp();
-    met.set_last_advertised_time();
-    *resp->add_metrics() = *met.rpc_metric_ptr;
-  }
-  return Status::OK;
+	  for (Metric met : metrics) {
+		met.set_timestamp();
+		met.set_last_advertised_time();
+		*resp->add_metrics() = *met.rpc_metric_ptr;
+	  }
+	  return Status::OK;
+
+	} catch  (Exception &e) {
+		resp->set_error(e.what());
+		Status status(StatusCode::UNKNOWN, e.what());
+		return status;
+	}
 }
 
 Status CollectorImpl::Kill(ServerContext* context, const KillArg* req,
@@ -87,7 +103,13 @@ Status CollectorImpl::Kill(ServerContext* context, const KillArg* req,
 
 Status CollectorImpl::GetConfigPolicy(ServerContext* context, const Empty* req,
                                       GetConfigPolicyReply* resp) {
-  return plugin_impl_ptr->GetConfigPolicy(context, req, resp);
+	try {
+		return plugin_impl_ptr->GetConfigPolicy(context, req, resp);
+	}  catch  (Exception &e) {
+		resp->set_error(e.what());
+		Status status(StatusCode::UNKNOWN, e.what());
+		return status;
+	}
 }
 
 Status CollectorImpl::Ping(ServerContext* context, const Empty* req,

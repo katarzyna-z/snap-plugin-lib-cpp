@@ -18,12 +18,14 @@ limitations under the License.
 #include <grpc++/grpc++.h>
 
 #include "snap/rpc/plugin.pb.h"
+#include "snap/exception.h"
 
 using google::protobuf::RepeatedPtrField;
 
 using grpc::Server;
 using grpc::ServerContext;
 using grpc::Status;
+using grpc::StatusCode;
 
 using rpc::Empty;
 using rpc::ErrReply;
@@ -33,6 +35,7 @@ using rpc::Publisher;
 using rpc::PubProcArg;
 
 using Plugin::Proxy::PublisherImpl;
+using Plugin::Exception;
 
 PublisherImpl::PublisherImpl(Plugin::PublisherInterface* plugin) :
                              publisher(plugin) {
@@ -45,17 +48,24 @@ PublisherImpl::~PublisherImpl() {
 
 Status PublisherImpl::Publish(ServerContext* context, const PubProcArg* req,
                               ErrReply* resp) {
-  std::vector<Metric> metrics;
-  RepeatedPtrField<rpc::Metric> rpc_mets = req->metrics();
+  try {
+	  std::vector<Metric> metrics;
+	  RepeatedPtrField<rpc::Metric> rpc_mets = req->metrics();
 
-  for (int i = 0; i < rpc_mets.size(); i++) {
-    metrics.emplace_back(rpc_mets.Mutable(i));
+	  for (int i = 0; i < rpc_mets.size(); i++) {
+		metrics.emplace_back(rpc_mets.Mutable(i));
+	  }
+
+	  Plugin::Config config(req->config());
+	  publisher->publish_metrics(&metrics, config);
+
+	  return Status::OK;
+
+  } catch (Exception &e) {
+	  resp->set_error(e.what());
+	  Status status(StatusCode::UNKNOWN, e.what());
+	  return status;
   }
-
-  Plugin::Config config(req->config());
-  publisher->publish_metrics(&metrics, config);
-
-  return Status::OK;
 }
 
 Status PublisherImpl::Kill(ServerContext* context, const KillArg* req,
@@ -65,7 +75,13 @@ Status PublisherImpl::Kill(ServerContext* context, const KillArg* req,
 
 Status PublisherImpl::GetConfigPolicy(ServerContext* context, const Empty* req,
                                       GetConfigPolicyReply* resp) {
-  return plugin_impl_ptr->GetConfigPolicy(context, req, resp);
+	try {
+		 return plugin_impl_ptr->GetConfigPolicy(context, req, resp);
+	 } catch (Exception &e) {
+		 resp->set_error(e.what());
+		 Status status(StatusCode::UNKNOWN, e.what());
+		 return status;
+	}
 }
 
 Status PublisherImpl::Ping(ServerContext* context, const Empty* req,

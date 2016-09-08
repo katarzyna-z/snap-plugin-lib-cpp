@@ -18,12 +18,14 @@ limitations under the License.
 #include <grpc++/grpc++.h>
 
 #include "snap/rpc/plugin.pb.h"
+#include "snap/exception.h"
 
 using google::protobuf::RepeatedPtrField;
 
 using grpc::Server;
 using grpc::ServerContext;
 using grpc::Status;
+using grpc::StatusCode;
 
 using rpc::Empty;
 using rpc::ErrReply;
@@ -34,6 +36,7 @@ using rpc::Processor;
 using rpc::PubProcArg;
 
 using Plugin::Proxy::ProcessorImpl;
+using Plugin::Exception;
 
 ProcessorImpl::ProcessorImpl(Plugin::ProcessorInterface* plugin) :
                              processor(plugin) {
@@ -46,20 +49,27 @@ ProcessorImpl::~ProcessorImpl() {
 
 Status ProcessorImpl::Process(ServerContext* context, const PubProcArg* req,
                               MetricsReply* resp) {
-  std::vector<Metric> metrics;
-  RepeatedPtrField<rpc::Metric> rpc_mets = req->metrics();
+  try {
+	  std::vector<Metric> metrics;
+	  RepeatedPtrField<rpc::Metric> rpc_mets = req->metrics();
 
-  for (int i = 0; i < rpc_mets.size(); i++) {
-    metrics.emplace_back(rpc_mets.Mutable(i));
+	  for (int i = 0; i < rpc_mets.size(); i++) {
+		metrics.emplace_back(rpc_mets.Mutable(i));
+	  }
+
+	  Plugin::Config config(req->config());
+	  processor->process_metrics(&metrics, config);
+
+	  for (Metric met : metrics) {
+		*resp->add_metrics() = *met.rpc_metric_ptr;
+	  }
+	  return Status::OK;
+
+  } catch (Exception &e) {
+		resp->set_error(e.what());
+		Status status(StatusCode::UNKNOWN, e.what());
+		return status;
   }
-
-  Plugin::Config config(req->config());
-  processor->process_metrics(&metrics, config);
-
-  for (Metric met : metrics) {
-    *resp->add_metrics() = *met.rpc_metric_ptr;
-  }
-  return Status::OK;
 }
 
 Status ProcessorImpl::Kill(ServerContext* context, const KillArg* req,
@@ -69,7 +79,13 @@ Status ProcessorImpl::Kill(ServerContext* context, const KillArg* req,
 
 Status ProcessorImpl::GetConfigPolicy(ServerContext* context, const Empty* req,
                                       GetConfigPolicyReply* resp) {
-  return plugin_impl_ptr->GetConfigPolicy(context, req, resp);
+	try {
+		return plugin_impl_ptr->GetConfigPolicy(context, req, resp);
+	} catch (Exception &e) {
+		resp->set_error(e.what());
+		Status status(StatusCode::UNKNOWN, e.what());
+		return status;
+	}
 }
 
 Status ProcessorImpl::Ping(ServerContext* context, const Empty* req,
