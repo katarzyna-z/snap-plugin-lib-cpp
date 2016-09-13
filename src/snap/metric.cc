@@ -69,12 +69,14 @@ Metric::~Metric() {
 }
 
 void Metric::set_ns(std::vector<Metric::NamespaceElement> ns) {
-  std::vector<Metric::NamespaceElement> memo_ns;
+  rpc_metric_ptr->clear_namespace_();
+  memo_ns.clear();
   for (Metric::NamespaceElement ns_elem : ns) {
     rpc::NamespaceElement* rpc_elem = rpc_metric_ptr->add_namespace_();
     rpc_elem->set_name(ns_elem.name);
     rpc_elem->set_value(ns_elem.value);
     rpc_elem->set_description(ns_elem.description);
+    memo_ns.push_back({ns_elem.value, ns_elem.name, ns_elem.description});
   }
 }
 
