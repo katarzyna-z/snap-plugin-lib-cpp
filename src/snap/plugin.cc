@@ -11,19 +11,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "snap/plugin.h"
-#include "snap/grpc_export.h"
-#include "snap/lib_setup_impl.h"
-
 #include <chrono>
 #include <functional>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #include <grpc++/grpc++.h>
 
+#include "snap/plugin.h"
+#include "snap/grpc_export.h"
+#include "snap/lib_setup_impl.h"
 #include "snap/rpc/plugin.pb.h"
-
 #include "snap/proxy/collector_proxy.h"
 #include "snap/proxy/processor_proxy.h"
 #include "snap/proxy/publisher_proxy.h"
@@ -38,11 +37,12 @@ using grpc::Server;
 using grpc::ServerBuilder;
 
 static void start_plugin(Plugin::PluginInterface* plugin, const Plugin::Meta& meta);
+int start_stand_alone(Plugin::PluginInterface* plugin, const Plugin::Meta& meta);
 
 function<unique_ptr<Plugin::PluginExporter, function<void(Plugin::PluginExporter*)>>()> Plugin::LibSetup::exporter_provider = []{ return std::unique_ptr<PluginExporter>(new GRPCExporter()); };
 
-Plugin::PluginException::PluginException(const string& message) :
-                                         runtime_error(message) {}
+Plugin::PluginException::PluginException(const std::string& message) : 
+                                            runtime_error(message) {}
 
 Plugin::Meta::Meta(Type type, std::string name, int version) :
                      type(type),
@@ -51,64 +51,71 @@ Plugin::Meta::Meta(Type type, std::string name, int version) :
                      rpc_type(RpcType::GRPC),
                      concurrency_count(5),
                      exclusive(false),
+                     unsecure(true),
                      cache_ttl(std::chrono::milliseconds(500)),
-                     strategy(Strategy::LRU) {}
+                     strategy(Strategy::LRU),
+//                     cert_path(""),
+//                     key_path(""),
+//                     tls_enabled(false),
+//                     root_cert_paths(""),
+                     stand_alone(false),
+                     stand_alone_port(stand_alone_port) {}
 
 Plugin::CollectorInterface* Plugin::PluginInterface::IsCollector() {
-  return nullptr;
+    return nullptr;
 }
 
 Plugin::ProcessorInterface* Plugin::PluginInterface::IsProcessor() {
-  return nullptr;
+    return nullptr;
 }
 
 Plugin::PublisherInterface* Plugin::PluginInterface::IsPublisher() {
-  return nullptr;
+    return nullptr;
 }
 
 Plugin::Type Plugin::CollectorInterface::GetType() const {
-  return Collector;
+    return Collector;
 }
 
 Plugin::CollectorInterface* Plugin::CollectorInterface::IsCollector() {
-  return this;
+    return this;
 }
 
 Plugin::Type Plugin::ProcessorInterface::GetType() const {
-  return Processor;
+    return Processor;
 }
 
 Plugin::ProcessorInterface* Plugin::ProcessorInterface::IsProcessor() {
-  return this;
+    return this;
 }
 
 Plugin::Type Plugin::PublisherInterface::GetType() const {
-  return Publisher;
+    return Publisher;
 }
 
 Plugin::PublisherInterface* Plugin::PublisherInterface::IsPublisher() {
-  return this;
+    return this;
 }
 
 void Plugin::start_collector(CollectorInterface* collector,
                              const Meta& meta) {
-  start_plugin(collector, meta);
+    start_plugin(collector, meta);
 }
 
 void Plugin::start_processor(ProcessorInterface* processor,
                              const Meta& meta) {
-  start_plugin(processor, meta);
+    start_plugin(processor, meta);
 }
 
 void Plugin::start_publisher(PublisherInterface* publisher,
                              const Meta& meta) {
-  start_plugin(publisher, meta);
+    start_plugin(publisher, meta);
 }
 
 static void start_plugin(Plugin::PluginInterface* plugin, const Plugin::Meta& meta) {
-  auto exporter = Plugin::LibSetup::exporter_provider();
-  // disable deleting the plugin instance
-  auto plugin_ptr = shared_ptr<Plugin::PluginInterface>(plugin, [](void*){});
-  auto completion = exporter->ExportPlugin(plugin_ptr, &meta);
-  completion.get();
+    auto exporter = Plugin::LibSetup::exporter_provider();
+    // disable deleting the plugin instance
+    auto plugin_ptr = shared_ptr<Plugin::PluginInterface>(plugin, [](void*){});
+    auto completion = exporter->ExportPlugin(plugin_ptr, &meta);
+    completion.get();
 }

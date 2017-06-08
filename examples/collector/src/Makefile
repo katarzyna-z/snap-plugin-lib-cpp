@@ -27,7 +27,8 @@ CC=g++
 IDIRS=-I.
 LDIRS=-L.
 CFLAGS=-std=c++1y
-LIBS=-Wl,--start-group $(SNAPLIBS)/libsnap.a $(SNAPLIBS)/libgrpc.a $(SNAPLIBS)/libgrpc++.a $(SNAPLIBS)/libprotobuf.a -Wl,--end-group -lz -lpthread
+#LIBS= -lsnap -lgrpc++ -lprotobuf -lz -lpthread -lboost_program_options
+LIBS=-Wl,--start-group $(SNAPLIBS)/libsnap.a $(SNAPLIBS)/libgrpc.a $(SNAPLIBS)/libgrpc++.a $(SNAPLIBS)/libprotobuf.a -Wl,--end-group -lboost_program_options -lboost_system -lboost_thread -lcppnetlib-uri -lcppnetlib-client-connections -lcppnetlib-server-parsers -lz -lpthread -lssl -lcrypto
 FILES := $(wildcard *.cc)
 
 all: $(TARGET)				# Build all targets

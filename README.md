@@ -52,6 +52,8 @@ Dependencies:
 * grpc++ (see below)
 * libtool
 * make
+* [boost c++ libs](http://www.boost.org)
+* [cppnet-lib](http://cpp-netlib.org)
 
 ### Building GRPC from source
 
