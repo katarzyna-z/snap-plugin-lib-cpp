@@ -18,7 +18,8 @@ PLUGINTYPE=processor
 NAME=graffiti
 TARGET=test-$(PLUGINTYPE)-$(NAME)
 
-SNAPLIBS=/usr/local/lib
+SNAPLIBS=/usr/lib
+GRPCLIBS=/usr/local/lib
 ICCROOT=
 EROOT=../..
 BDIR=$(EROOT)/bin
@@ -27,7 +28,7 @@ CC=g++
 IDIRS=-I.
 LDIRS=-L.
 CFLAGS=-std=c++1y
-LIBS=-Wl,--start-group $(SNAPLIBS)/libsnap.a $(SNAPLIBS)/libgrpc.a $(SNAPLIBS)/libgrpc++.a $(SNAPLIBS)/libprotobuf.a -Wl,--end-group -lz -lpthread
+LIBS=-Wl,--start-group $(GRPCLIBS)/libsnap.a $(GRPCLIBS)/libgrpc.a $(GRPCLIBS)/libgrpc++.a $(SNAPLIBS)/libprotobuf.a -Wl,--end-group -lz -lpthread -lssl -lcrypto
 FILES := $(wildcard *.cc)
 
 all: $(TARGET)				# Build all targets

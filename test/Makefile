@@ -59,7 +59,7 @@ clean :
 init :	;
 	
 
-$(PREFIX)/$(EXE) : RUN_LDFLAGS = $(LDFLAGS) -L$(SNAPLIB_DIR)/lib -L$(GTESTLIB_DIR)/lib -pthread -lpthread -lgmock -lgtest -lsnap -lprotobuf -lgrpc++ -lgcov $(COV_ARGS)
+$(PREFIX)/$(EXE) : RUN_LDFLAGS = $(LDFLAGS) -L$(SNAPLIB_DIR)/lib -L$(GTESTLIB_DIR)/lib -L/usr/lib -pthread -lpthread -lgmock -lgtest -lsnap -lprotobuf -lgrpc++ -lgcov $(COV_ARGS)
 $(PREFIX)/$(EXE) : $(OBJ)
 	$(run-ld)
 
