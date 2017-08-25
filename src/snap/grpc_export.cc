@@ -80,9 +80,9 @@ Plugin::GRPCExportImpl* Plugin::GRPCExporter::implement() {
 future<void> Plugin::GRPCExportImpl::DoExport(shared_ptr<PluginInterface> plugin, const Meta *meta) {
     this->plugin = std::move(plugin);
     this->meta = meta;
+
     doConfigure();
     doRegister();
-    //_preamble = printPreamble();
 
     if (this->meta->stand_alone) {
         auto start_sa = std::async(std::launch::deferred, &Plugin::GRPCExportImpl::start_stand_alone, this,
@@ -118,7 +118,7 @@ void Plugin::GRPCExportImpl::doConfigure() {
         // _plogger->Fatal("unknown plugin type");
         std::cout << "Fatal: unknown plugin type" << std::endl;
     }
-    
+    //std::cout << "Debug: add listening port" << std::endl;
     builder.reset(new grpc::ServerBuilder());
     builder->AddListeningPort(ss.str(), grpc::InsecureServerCredentials(),
                             &this->port);
