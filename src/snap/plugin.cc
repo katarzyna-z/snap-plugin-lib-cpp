@@ -155,6 +155,8 @@ void Plugin::start_publisher(PublisherInterface* publisher,
 
 void Plugin::start_stream_collector(StreamCollectorInterface* stream_collector,
                              const Meta& meta) {
+    stream_collector->SetMaxCollectDuration(meta.max_collect_duration);
+    stream_collector->SetMaxMetricsBuffer(meta.max_metrics_buffer);
     start_plugin(stream_collector, meta);
 }
 
