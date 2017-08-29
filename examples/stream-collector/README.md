@@ -52,7 +52,7 @@ In order to write a plugin for Snap, it is necessary to define a few methods to 
 /**
  * The interface for a streaming collector plugin.
  * A Collector is the source.
- * It is responsible for collecting metrics in the Snap pipeline.
+ * It is responsible for collecting  metrics in the Snap pipeline.
  */
 class StreamCollectorInterface : public PluginInterface {
 public:
