@@ -50,7 +50,7 @@ In order to write a plugin for Snap, it is necessary to define a few methods to 
 
 ```cpp
 /**
- * The interface for a collector plugin.
+ * The interface for a streaming collector plugin.
  * A Collector is the source.
  * It is responsible for collecting metrics in the Snap pipeline.
  */
