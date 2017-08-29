@@ -111,14 +111,11 @@ void Plugin::GRPCExportImpl::doConfigure() {
             this->service.reset(new Proxy::PublisherImpl(plugin->IsPublisher()));
             break;
         case Plugin::StreamCollector:
-            //std::cout << "Debug: max-collect-duration: " <<  this->meta->max_collect_duration.count() << std::endl;
             this->service.reset(new Proxy::StreamCollectorImpl(plugin->IsStreamCollector()));
             break;
         default:
-        // _plogger->Fatal("unknown plugin type");
-        std::cout << "Fatal: unknown plugin type" << std::endl;
+            std::cout << "Fatal: unknown plugin type" << std::endl;
     }
-    //std::cout << "Debug: add listening port" << std::endl;
     builder.reset(new grpc::ServerBuilder());
     builder->AddListeningPort(ss.str(), grpc::InsecureServerCredentials(),
                             &this->port);
